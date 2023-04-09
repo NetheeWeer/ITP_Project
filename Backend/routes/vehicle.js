@@ -1,75 +1,90 @@
-const router = require("express").Router();
-let vehicle = require("../models/vehicle");
+const express = require("express");
+const router = express.Router();
+const vehicle = require("../models/vehicle");
 
-router.route("/add").post((req,res)=>{
-    const regNo = req.body.RegNo;
-    const make = req.body.Make;
-    const model = req.body.Model;
-    const engC = number(req.body.EngC);
-    const cMil = number(req.body.CMileage);
-
+router.post("/addvehicle", async (req, res, next) => {
+  try {
+    const { RegNo, Make, Model, EngC, CMileage } = req.body;
     const newVehicle = new vehicle({
-        regNo,
-        make,
-        model,
-        engC,
-        cMil
-    })
+      RegNo,
+      Make,
+      Model,
+      EngC,
+      CMileage,
+    });
+    const savedVehicle = await newVehicle.save();
+    res.status(201).json(savedVehicle);
+  } catch (error) {
+    next(error);
+  }
+});
 
-    newVehicle.save().then(()=>{
-        res.json("Vehicle Added");
-    }).catch((err)=>{
-        console.log(err);
-    })
-})
+router.get("/showvehicle", async (req, res, next) => {
+  try {
+    const vehicles = await vehicle.find();
+    res.json(vehicles);
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.route("/").get((req,res)=>{
-    vehicle.find().then((vehicles)=>{
-        res.json(vehicles);
-    }).catch((err)=>{
-        console.log(err);
-    })
-})
-
-router.route("/update/:id").put(async(req,res)=>{
-    let userId = req.params.id;
-    const {regNo,make,model,engC,cMil} = req.body
-
+router.put("/updatevehicle/:id", async (req, res, next) => {
+  try {
+    const { RegNo, Make, Model, EngC, CMileage } = req.body;
     const updateVehicle = {
-        regNo,
-        make,
-        model,
-        engC,
-        cMil
+      RegNo,
+      Make,
+      Model,
+      EngC,
+      CMileage,
+    };
+    const updatedVehicle = await vehicle.findByIdAndUpdate(
+      req.params.id,
+      updateVehicle,
+      { new: true }
+    );
+    if (!updatedVehicle) {
+      res.status(404).send({ message: "Vehicle not found" });
+    } else {
+      res.status(200).json(updatedVehicle);
     }
+  } catch (error) {
+    next(error);
+  }
+});
 
-    const update = await vehicle.findByIdAndUpdate(userId, updateVehicle).then(()=>{
-        res.status(200).send({status: "Vehicle updated", user: update})
-    }).catch((err)=>{
-        console.log(err);
-        re.status(500).send({status: "Error while updating vehicle data"});
-    })
-})
+router.delete("/deletevehicle/:id", async (req, res, next) => {
+  try {
+    const deletedVehicle = await vehicle.findByIdAndDelete(req.params.id);
+    if (!deletedVehicle) {
+      res.status(404).send({ message: "Vehicle not found" });
+    } else {
+      res.status(200).send({ message: "Vehicle deleted" });
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
-router.route("/delete/:id").delete(async(req,res)=>{
-    let userId = req.params.id;
+router.get("/getvehicle/:id", async (req, res, next) => {
+  try {
+    const vehicleId = req.params.id;
+    const vehicleData = await vehicle.findById(vehicleId);
+    if (!vehicleData) {
+      res.status(404).send({ message: "Vehicle not found" });
+    } else {
+      res.status(200).send({ message: "Vehicle Fetched" })
+      res.status(200).json(vehicleData);
+    }
+  } catch (error) {
+    next(error);
+  }
+});
 
-    await vehicle.findByIdAndDelete(userId).then(()=>{
-        res.status(200).send({status: "Vehicle Deleted"})
-    }).catch((err)=>{
-        console.log(err.message);
-        res.status(500).send({status: "Error while deleting the vehicle", error: err.message})
-    })
-})
-
-router.route("/get/:id").get(async(req,res)=>{
-    const userId = req.params.id;
-    const vehi = await vehicle.findById(userId).then(()=>{
-        res.status(200).send({status: "Vehicle fetched", user: vehi}).catch((err)=>{
-            console.log(err.message)
-            res.status(500).send({status: "Error while fetching the vehicle", error: err.message})
-        })
-    })
-})
+// error handling middleware
+router.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).send({ message: "Server Error" });
+});
 
 module.exports = router;

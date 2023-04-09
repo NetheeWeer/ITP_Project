@@ -17,11 +17,11 @@ const vehicleSchema = new Schema({
         required: true
     },
     EngC:{
-        type: number,
+        type: String,
         required: true
     },
     CMileage:{
-        type: number,
+        type: String,
         required: true
     }
 });
